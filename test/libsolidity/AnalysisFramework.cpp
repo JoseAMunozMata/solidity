@@ -27,7 +27,7 @@
 
 #include <libsolidity/ast/AST.h>
 
-#include <libsolidity/parsing/Scanner.h>
+#include <libsolcommon/Scanner.h>
 
 #include <libdevcore/SHA3.h>
 
