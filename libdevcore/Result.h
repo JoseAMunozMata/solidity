@@ -21,6 +21,8 @@
 namespace dev {
 
 /// Simple generic result that holds a value and an optional error message.
+/// Results can be implicitely converted to and created from the type of
+/// the value they hold.
 ///
 /// Result<bool> check()
 /// {
@@ -33,18 +35,17 @@ template <class T>
 class Result
 {
 public:
-	Result(T _value): m_value(std::move(_value)) {}
-	Result(T _value, std::string _err): m_value(std::move(_value)), m_err(std::move(_err)) {}
+    Result(T _value): m_value(std::move(_value)) {}
+    Result(T _value, std::string _err): m_value(std::move(_value)), m_err(std::move(_err)) {}
 
-	operator bool() const { return m_value ? true : false; }
-
-	T const& get() const { return m_value; }
-	std::string const& error() const { return m_err; }
-	bool hasError() const { return !m_err.empty(); }
+    /// @returns the actual result value.
+    operator T() { return m_value; }
+    /// @returns the error message (can be emtpy).
+    std::string const& error() const { return m_err; }
 
 private:
-	T m_value;
-	std::string m_err;
+    T m_value;
+    std::string m_err;
 };
 
 }

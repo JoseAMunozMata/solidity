@@ -32,7 +32,7 @@ void ConstantEvaluator::endVisit(UnaryOperation const& _operation)
 {
 	auto sub = type(_operation.subExpression());
 	if (sub)
-		setType(_operation, sub->unaryOperatorResult(_operation.getOperator()).get());
+        setType(_operation, sub->unaryOperatorResult(_operation.getOperator()));
 }
 
 void ConstantEvaluator::endVisit(BinaryOperation const& _operation)
@@ -40,31 +40,25 @@ void ConstantEvaluator::endVisit(BinaryOperation const& _operation)
 	auto left = type(_operation.leftExpression());
 	auto right = type(_operation.rightExpression());
 	if (left && right)
-	{
-		TypeResult result = left->binaryOperatorResult(_operation.getOperator(), right);
-		if (!result.get())
-		{
-			if (result.error().empty())
-				m_errorReporter.fatalTypeError(
-					_operation.location(),
-					"Operator " +
-					string(TokenTraits::toString(_operation.getOperator())) +
-					" not compatible with types " +
-					left->toString() +
-					" and " +
-					right->toString()
-				);
-			else
-				m_errorReporter.fatalTypeError(
-					_operation.location(),
-					result.error()
-				);
-		}
+    {
+        TypeResult result = left->binaryOperatorResult(_operation.getOperator(), right);
+        TypePointer resultType(result);
+        if (!resultType)
+            m_errorReporter.fatalTypeError(
+                _operation.location(),
+                "Operator " +
+                string(TokenTraits::toString(_operation.getOperator())) +
+                " not compatible with types " +
+                left->toString() +
+                " and " +
+                right->toString() +
+                (!result.error().empty() ? ". " + result.error() : "")
+            );
 		setType(
 			_operation,
 			TokenTraits::isCompareOp(_operation.getOperator()) ?
 			make_shared<BoolType>() :
-			result.get()
+            resultType
 		);
 	}
 }

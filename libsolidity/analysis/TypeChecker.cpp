@@ -1502,24 +1502,18 @@ bool TypeChecker::visit(Assignment const& _assignment)
 			TokenTraits::AssignmentToBinaryOp(_assignment.assignmentOperator()),
 			type(_assignment.rightHandSide())
 		);
-		if (!result || *result.get() != *t)
-		{
-			if (result.error().empty())
-				m_errorReporter.typeError(
-					_assignment.location(),
-					"Operator " +
-					string(TokenTraits::toString(_assignment.assignmentOperator())) +
-					" not compatible with types " +
-					t->toString() +
-					" and " +
-					type(_assignment.rightHandSide())->toString()
-				);
-			else
-				m_errorReporter.typeError(
-					_assignment.location(),
-					result.error()
-				);
-		}
+        TypePointer resultType(result);
+        if (!resultType || *resultType != *t)
+            m_errorReporter.typeError(
+                _assignment.location(),
+                "Operator " +
+                string(TokenTraits::toString(_assignment.assignmentOperator())) +
+                " not compatible with types " +
+                t->toString() +
+                " and " +
+                type(_assignment.rightHandSide())->toString() +
+                (!result.error().empty() ? ". " + result.error() : "")
+            );
 	}
 	return false;
 }
@@ -1622,19 +1616,21 @@ bool TypeChecker::visit(UnaryOperation const& _operation)
 	else
 		_operation.subExpression().accept(*this);
 	TypePointer const& subExprType = type(_operation.subExpression());
-	TypeResult t = type(_operation.subExpression())->unaryOperatorResult(op);
-	if (!t)
+    TypeResult result = type(_operation.subExpression())->unaryOperatorResult(op);
+    TypePointer t(result);
+    if (!t)
 	{
 		m_errorReporter.typeError(
 			_operation.location(),
 			"Unary operator " +
 			string(TokenTraits::toString(op)) +
 			" cannot be applied to type " +
-			subExprType->toString()
+            subExprType->toString() +
+            (!result.error().empty() ? ". " + result.error() : "")
 		);
 		t = subExprType;
 	}
-	_operation.annotation().type = t.get();
+    _operation.annotation().type = t;
 	_operation.annotation().isPure = !modifying && _operation.subExpression().annotation().isPure;
 	return false;
 }
@@ -1643,9 +1639,9 @@ void TypeChecker::endVisit(BinaryOperation const& _operation)
 {
 	TypePointer const& leftType = type(_operation.leftExpression());
 	TypePointer const& rightType = type(_operation.rightExpression());
-	TypeResult result = leftType->binaryOperatorResult(_operation.getOperator(), rightType);
-	TypePointer commonType = result.get();
-	if (!result)
+    TypeResult result = leftType->binaryOperatorResult(_operation.getOperator(), rightType);
+    TypePointer commonType(result);
+    if (!commonType)
 	{
 		m_errorReporter.typeError(
 			_operation.location(),
@@ -1655,7 +1651,7 @@ void TypeChecker::endVisit(BinaryOperation const& _operation)
 			leftType->toString() +
 			" and " +
 			rightType->toString() +
-			(result.hasError() ? result.error() : "")
+            (!result.error().empty() ? ". " + result.error() : "")
 		);
 		commonType = leftType;
 	}
